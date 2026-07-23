@@ -110,5 +110,20 @@ class TestBuildConfig(unittest.TestCase):
         self.assertEqual(cfg["farbe"], "#F97316")
 
 
+class TestWriteBack(unittest.TestCase):
+    def test_sets_demo_url_on_matching_company(self):
+        leads = [{"company": "A"}, {"company": "Elektro Musterlicht GmbH"}]
+        hit = dp.update_lead_demo_url(leads, "Elektro Musterlicht GmbH",
+                                      "https://demos-tilind.netlify.app/elektro-musterlicht-gmbh/")
+        self.assertTrue(hit)
+        self.assertEqual(leads[1]["demoUrl"],
+                         "https://demos-tilind.netlify.app/elektro-musterlicht-gmbh/")
+
+    def test_returns_false_when_no_match(self):
+        leads = [{"company": "A"}]
+        self.assertFalse(dp.update_lead_demo_url(leads, "Nicht Da", "https://x/"))
+        self.assertNotIn("demoUrl", leads[0])
+
+
 if __name__ == "__main__":
     unittest.main()

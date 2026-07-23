@@ -89,3 +89,12 @@ def build_config(candidate, enrichment):
         "faq": enr.get("faq") or "",
         "farbe": enr.get("farbe") or candidate.get("farbe") or _FALLBACK_FARBE,
     }
+
+
+def update_lead_demo_url(leads, company, url):
+    """Setzt demoUrl beim Lead mit passendem company. True wenn getroffen."""
+    for lead in leads:
+        if lead.get("company") == company:
+            lead["demoUrl"] = url
+            return True
+    return False
