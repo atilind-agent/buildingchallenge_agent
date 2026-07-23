@@ -40,3 +40,31 @@ def has_chatbot(problem: str) -> bool:
     """True, wenn der problem-Text ein vorhandenes Chat/WhatsApp-Widget nennt."""
     p = (problem or "").lower()
     return "vorhanden" in p and ("chat" in p or "whatsapp" in p)
+
+
+def select_candidates(leads, require_social=True, include_done=False):
+    """Leads -> Kandidaten: status new, kein Chatbot, (optional) Social vorhanden,
+    (optional) noch keine demoUrl."""
+    out = []
+    for lead in leads:
+        status = (lead.get("status") or "").strip().lower()
+        if status != "new":
+            continue
+        if lead.get("demoUrl") and not include_done:
+            continue
+        if has_chatbot(lead.get("problem") or ""):
+            continue
+        fb, ig = extract_social(lead.get("contact") or "")
+        if require_social and not (fb or ig):
+            continue
+        out.append({
+            "company": lead.get("company"),
+            "slug": slugify(lead.get("company") or ""),
+            "phone": extract_phone(lead.get("contact") or ""),
+            "facebook": fb,
+            "instagram": ig,
+            "website": lead.get("website"),
+            "problem": lead.get("problem") or "",
+            "farbe": lead.get("farbe"),
+        })
+    return out

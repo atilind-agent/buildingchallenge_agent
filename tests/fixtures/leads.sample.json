@@ -1,0 +1,8 @@
+[
+  {"company": "Elektro Musterlicht GmbH", "contact": "Tel: +49 2841 111111 / FB: https://www.facebook.com/musterlicht/", "website": "https://musterlicht-example.de/", "problem": "Website 2019, kein Chat-Widget", "source": "lead-finder PLZ 47441", "status": "new", "farbe": "#1E5AA8"},
+  {"company": "Dachbau Beispiel", "contact": "Tel: +49 2841 222222 / IG: https://www.instagram.com/dachbaubeispiel", "website": null, "problem": "Keine Website", "source": "lead-finder PLZ 47441", "status": "NEW"},
+  {"company": "Sanitär Habenschon", "contact": "Tel: +49 2841 333333 / Mail: info@habenschon-example.de", "website": "https://habenschon-example.de/", "problem": "Website 2021, kein Chat-Widget", "source": "lead-finder PLZ 47441", "status": "new"},
+  {"company": "Auto Chathaus", "contact": "Tel: +49 2841 444444 / FB: https://www.facebook.com/chathaus/", "website": "https://chathaus-example.de/", "problem": "Chat/WhatsApp vorhanden", "source": "lead-finder PLZ 47441", "status": "new"},
+  {"company": "Maler Fertig", "contact": "Tel: +49 2841 555555 / FB: https://www.facebook.com/malerfertig/", "website": "https://malerfertig-example.de/", "problem": "Website 2020, kein Chat-Widget", "source": "lead-finder PLZ 47441", "status": "new", "demoUrl": "https://demos-tilind.netlify.app/maler-fertig/"},
+  {"company": "Tischler Gewonnen", "contact": "Tel: +49 2841 666666 / IG: https://www.instagram.com/tischlergewonnen", "website": "https://gewonnen-example.de/", "problem": "Website 2020, kein Chat-Widget", "source": "lead-finder PLZ 47441", "status": "won"}
+]
