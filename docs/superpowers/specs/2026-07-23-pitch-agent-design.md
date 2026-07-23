@@ -48,11 +48,14 @@ Der neue Agent setzt bewusst **auf einer vorhandenen `leads.json` auf** (scharfe
 
 ### Zwei Bausteine im Repo
 
-- **`SKILL.md`** — das Orchestrator-Gehirn (Skill-Trigger + `/pitch-agent`). Steuert den Fluss,
-  dispatcht die Haiku-Subagenten für die „fuzzy" Stufen (3 + 5). Baut auf dem Muster des
-  bestehenden `lead-finder`-Skills auf.
-- **`demo_pipeline.py`** — die **deterministische** Glue-Logik: Filtern (`select`), Config-Merge
-  mit Slug-Generierung + Überschreibschutz, Build, Deploy, Deploy-Verifikation (`build`).
+- **`skills/pitch-agent/SKILL.md`** — das Orchestrator-Gehirn (Skill-Trigger + `/pitch-agent`).
+  Steuert den Fluss, dispatcht die Haiku-Subagenten für die „fuzzy" Stufen (3 + 5). Baut auf dem
+  Muster des bestehenden `lead-finder`-Skills auf. Diszipliniertes Frontmatter
+  (name/description/model/effort) + ein kurzer „Gesetze"-Block, geerdet in der Denklogik
+  (Vorbild: `agent/video-cutter.md` aus Sebastians Repo mit seinen „10 Gesetzen").
+- **`scripts/demo_pipeline.py`** — die **deterministische** Glue-Logik: Filtern (`select`),
+  Config-Merge mit Slug-Generierung + Überschreibschutz, Build, Deploy, Deploy-Verifikation
+  (`build`). **Nur Python-Stdlib, keine externen Deps** (bewusst — keine `requirements.txt` nötig).
   Das ist der testbare, stabile Kern (Bewertungskriterium „stabil & sauber").
 
 ### Warum diese Aufteilung
@@ -106,10 +109,52 @@ Der Agent startet von einer schon gefüllten `leads.json` (Stufe 1 ist Vorbeding
 2–3-Min-Video **nicht** durch den langen Apify-Scrape. Ablauf im Video: `/pitch-agent` → 3 Kandidaten
 → 3 live Demos + 3 Outreach-Texte. Ein Durchlauf, ungeschnitten.
 
-## Doku (Bonuspunkte)
+## Repo-Deliverables & Doku (nach Vorbild `claude-video-cutter`)
 
-`INSTALL.md`, an Claude adressiert (wie `START.md`): Skill installieren, Voraussetzungen prüfen
-(`~/demo-fabrik` mit generate.py/template/Netlify, Apify-Token in `~/.mcp.json`, Pfad zu `leads.json`).
+Sebastians Referenz-Repo zeigt, was ein „richtig gut gemachtes" Challenge-Repo ausmacht.
+Übernommen wird:
+
+### `INSTALL.md` — an Claude adressiert (wie `START.md`)
+Schritt für Schritt, jeder Schritt kurz erklärt BEVOR er ausgeführt wird:
+1. **Voraussetzungen prüfen:** `~/demo-fabrik` mit `generate.py` + `template.html` vorhanden,
+   `netlify`-CLI eingeloggt (Site-ID in `.netlify/state.json`), Apify-Token in `~/.mcp.json`,
+   `leads.json` unter `~/.claude/agency-data/`.
+2. **Skill global installieren mit Kollisions-Check:** existiert schon `~/.claude/skills/pitch-agent`?
+   → User fragen. Platzhalter ersetzen (siehe unten), dann nach `~/.claude/skills/` kopieren.
+3. **Erste Nutzung erklären:** `/lead-finder <PLZ>` (Vorbedingung) → `/pitch-agent` → live Demos + Outreach.
+
+### Platzhalter-Pattern (Teilbarkeit)
+Skill + Script enthalten `{{DEMO_FABRIK_DIR}}` und `{{LEADS_JSON}}`. `INSTALL.md` ersetzt sie
+per `sed` durch die echten absoluten Pfade beim Installieren (Vorbild: `{{CUTTER_DIR}}`).
+So ist der Agent nicht auf die Pfade des Autors festgenagelt.
+
+### `README.md` — Challenge-Template-Abschnitte, angereichert
+Die vom Template geforderten Abschnitte bleiben (Das Problem, Was der Agent macht, Stack, Setup,
+Was während der Challenge entstanden ist, Learnings, Demo-Video). Angereichert nach Referenz-Vorbild:
+- „Was der Agent macht" als **nummerierte 1–6-Liste** (wie Referenz)
+- **Voraussetzungen** + **Kosten-Tabelle** (Apify-Scrape-Kosten, Netlify Free-Tier)
+- **„Installation (ein Prompt)"** — ein Copy-Paste-Prompt, der Claude die ganze Einrichtung machen lässt
+- **„Was drin ist"** — Datei-Baum
+- **„Grenzen (ehrlich)"** — z.B. Markenfarbe best-effort, nur deutsche Handwerks-Leads, kein Auto-Versand
+- „Setup" verweist auf `INSTALL.md`
+
+### `LICENSE` — MIT (wie Referenz)
+
+## Repo-Struktur (nur der Agent, keine Kundendaten)
+
+```
+buildingchallenge_agent/
+├── README.md                       Challenge-README (angereichert)
+├── INSTALL.md                      An Claude adressiert, Schritt für Schritt
+├── LICENSE                         MIT
+├── ABGABE.md                       (aus Template, am Ende ausgefüllt)
+├── skills/pitch-agent/SKILL.md     Das Orchestrator-Gehirn
+├── scripts/demo_pipeline.py        Deterministische Glue-Logik (stdlib-only)
+├── tests/
+│   ├── fixtures/leads.sample.json  Fake-Betriebe (KEINE echten Kunden)
+│   └── test_demo_pipeline.py       Unit-Tests für select + config-merge
+└── docs/superpowers/specs/         Dieses Design-Dokument (Build Journal)
+```
 
 ## Nicht im Scope (YAGNI)
 
