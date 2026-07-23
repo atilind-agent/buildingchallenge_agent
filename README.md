@@ -1,42 +1,73 @@
-# SKAILE Building Challenge
-
-> Diese Datei füllst du im Laufe der Challenge aus. Die Platzhalter in eckigen
-> Klammern ersetzt du durch deine Inhalte — dein Claude Code hilft dir dabei
-> (siehe START.md).
+# pitch-agent — vom Lead zur fertigen Demo + Outreach
 
 ## Das Problem
 
-[1-2 Sätze: Wessen Problem löst dein Agent? Was kostet das Problem heute an
-Zeit, Geld oder Nerven?]
+Wer Handwerksbetriebe als Kunden für KI-Chatbots gewinnen will, muss pro Lead eine
+personalisierte Demo bauen und eine Nachricht schreiben. Das kostet je Lead viele Minuten
+Handarbeit — Website lesen, Infos abtippen, Demo bauen, deployen, Text formulieren — und
+skaliert nicht. Ergebnis: viele halbfertige Leads, wenige echte Demos.
 
 ## Was der Agent macht
 
-[2-3 Sätze: Input rein → was passiert → Ergebnis raus. Einfach erklärt, so
-dass es jemand ohne Technik-Hintergrund versteht.]
+Input: eine vorhandene `leads.json` (aus dem Lead-Finder). Der Agent
+
+1. **wählt** Leads ohne Chatbot, die ein Social-Profil haben (Kanal für die DM),
+2. **liest** deren echte Website und zieht Leistungen, Ort, Öffnungszeiten und Markenfarbe,
+3. **baut** daraus eine personalisierte Chatbot-Demo und **deployt** sie live,
+4. **prüft** jede Demo-URL (HTTP 200),
+5. **schreibt** einen fertigen, persönlichen Outreach-DM-Entwurf mit dem Demo-Link,
+6. **fasst** alles in einer Tabelle zusammen.
+
+Ergebnis: pro Lead ein Demo-Link + ein Nachrichtentext — zum Durchlesen und Senden.
+**Kein Auto-Versand.**
 
 ## Stack
 
-- [ ] Claude Code (Agent / Skills)
+- [x] Claude Code (Agent / Skills)
 - [ ] n8n
-- [ ] Sonstiges: [was?]
+- [x] Sonstiges: Python 3 (stdlib-only), bestehende „demo-fabrik" (generate.py + Netlify)
+
+## Voraussetzungen & Kosten
+
+| Was | Kosten |
+|---|---|
+| Claude Code | Abo |
+| „demo-fabrik" + Netlify | Netlify Free-Tier reicht |
+| Lead-Suche (Vorbedingung, Lead-Finder) | Apify-Scrape, ~Cent pro PLZ-Lauf |
+| Python-Deps | keine (nur Standardbibliothek) |
 
 ## Setup
 
-[Wie richtet man deinen Agenten ein? Wenn du es richtig gut machen willst:
-Schreib eine INSTALL.md, die an Claude adressiert ist — so wie beim
-Video-Cutter von Sebastian. Das gibt Bonuspunkte bei Doku/Teilbarkeit.]
+Siehe **[INSTALL.md](INSTALL.md)** — an Claude adressiert. Kurz:
+
+    Klone dieses Repo und lies die INSTALL.md — sie ist an dich adressiert. Prüfe meine
+    Voraussetzungen (demo-fabrik, netlify, leads.json), installiere den pitch-agent-Skill
+    global mit Platzhalter-Ersetzung und lass die Tests laufen. Erkläre jeden Schritt kurz,
+    bevor du ihn ausführst.
 
 ## Was während der Challenge entstanden ist
 
-[2-3 Stichpunkte: Was gab es vorher schon (siehe dein Check-in-Post), was
-ist neu dazugekommen?]
+- **Vorher schon da:** Lead-Finder (Finden/Priorisieren) und die demo-fabrik (generate.py +
+  Netlify-Deploy).
+- **Neu in der Challenge:** der pitch-agent — Website-Anreicherung, automatisches Bauen **und**
+  Deployen, Deploy-Verifikation, Demo-URL-Rückschreiben und personalisierter Outreach-Entwurf.
 
-## Learnings
+## Grenzen (ehrlich)
 
-[Die 2-3 wichtigsten Dinge, die du beim Bauen gelernt hast — auch Fails!]
+- Für deutsche Handwerks-Leads gedacht.
+- Markenfarbe wird best-effort erkannt; klappt das nicht, Standard-Orange.
+- Kein Auto-Versand — Outreach ist immer nur ein Entwurf.
+- Baut auf einer vom Lead-Finder gefüllten `leads.json` auf (findet nicht selbst).
+
+## Was drin ist
+
+    skills/pitch-agent/SKILL.md   Orchestrator (6 Stufen + Subagenten-Prompts)
+    scripts/demo_pipeline.py      Deterministischer Kern (stdlib-only)
+    tests/                        unittest-Tests + Fake-Fixtures
+    INSTALL.md                    Installation, an Claude adressiert
 
 ---
 
-**Demo-Video:** [Link zu Loom oder YouTube unlisted — EIN Durchlauf, ungeschnitten]
+**Demo-Video:** [Link folgt]
 
-*SKAILE Academy Building Challenge — [Monat/Jahr]*
+*SKAILE Academy Building Challenge — Juli 2026*
