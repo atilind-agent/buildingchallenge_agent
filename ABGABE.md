@@ -6,13 +6,16 @@ in der SKAILE Academy. Einfach kopieren und Platzhalter ersetzen.
 ## Abgabe-Post (bis zur Deadline)
 
 ```
-ABGABE — [Projektname]
+ABGABE — pitch-agent
 
-Problem: [1 Satz — wessen Problem, was kostet es heute?]
-Demo: [Loom- oder YouTube-unlisted-Link — ein Durchlauf, ungeschnitten]
-Repo: [GitHub-Link]
-Neu in der Challenge entstanden: [2-3 Stichpunkte]
-Stack: [Claude Code / n8n / beides]
+Problem: Handwerksbetriebe als Kunden für KI-Chatbots zu gewinnen kostet pro Lead viel
+Handarbeit (Website lesen, Demo bauen, deployen, Text schreiben) und skaliert nicht.
+Demo: TODO — noch aufzunehmen (Cmd+Shift+5), EIN Durchlauf von /pitch-agent, dann Link hier einfügen
+Repo: https://github.com/atilind-agent/buildingchallenge_agent
+Neu in der Challenge entstanden: Website-Anreicherung, automatisches Bauen UND Deployen der
+Demos, Deploy-Verifikation (HTTP 200), Demo-URL-Rückschreiben nach leads.json, personalisierte
+Outreach-DM-Entwürfe
+Stack: Claude Code (Agent/Skills) + Python 3 stdlib-only, bestehende „demo-fabrik" (Netlify)
 ```
 
 **Zum Demo-Video:** Bildschirmaufnahme reicht völlig (Mac: Cmd+Shift+5).
