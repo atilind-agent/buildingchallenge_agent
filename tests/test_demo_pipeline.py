@@ -74,5 +74,41 @@ class TestSelect(unittest.TestCase):
         self.assertIn("Maler Fertig", names)
 
 
+class TestBuildConfig(unittest.TestCase):
+    def _cand(self):
+        return {"company": "Elektro Musterlicht GmbH", "slug": "elektro-musterlicht-gmbh",
+                "phone": "+49 2841 111111", "facebook": "https://fb/x", "instagram": None,
+                "website": "https://musterlicht-example.de/", "problem": "Website 2019, kein Chat-Widget",
+                "farbe": "#1E5AA8"}
+
+    def test_build_config_uses_enrichment(self):
+        enr = {"gewerk": "Elektrotechnik", "stadt": "Moers",
+               "leistungen": "Elektroinstallation, Photovoltaik", "oeffnungszeiten": "Mo-Fr 8-16 Uhr",
+               "farbe": "#0A7C2F", "faq": "Notdienst rund um die Uhr."}
+        cfg = dp.build_config(self._cand(), enr)
+        self.assertEqual(cfg["slug"], "elektro-musterlicht-gmbh")
+        self.assertEqual(cfg["name"], "Elektro Musterlicht GmbH")
+        self.assertEqual(cfg["gewerk"], "Elektrotechnik")
+        self.assertEqual(cfg["stadt"], "Moers")
+        self.assertEqual(cfg["notfall_nummer"], "+49 2841 111111")
+        self.assertEqual(cfg["leistungen"], "Elektroinstallation, Photovoltaik")
+        self.assertEqual(cfg["oeffnungszeiten"], "Mo-Fr 8-16 Uhr")
+        self.assertEqual(cfg["farbe"], "#0A7C2F")
+        self.assertEqual(cfg["faq"], "Notdienst rund um die Uhr.")
+
+    def test_build_config_falls_back(self):
+        cfg = dp.build_config(self._cand(), {})
+        self.assertEqual(cfg["gewerk"], "Handwerksbetrieb")
+        self.assertEqual(cfg["stadt"], "")
+        self.assertEqual(cfg["leistungen"], "")
+        self.assertEqual(cfg["oeffnungszeiten"], "Mo-Fr 8-17 Uhr")
+        self.assertEqual(cfg["farbe"], "#1E5AA8")  # aus Lead-farbe, da enrichment leer
+
+    def test_build_config_default_color_when_nothing(self):
+        cand = self._cand(); cand["farbe"] = None
+        cfg = dp.build_config(cand, {})
+        self.assertEqual(cfg["farbe"], "#F97316")
+
+
 if __name__ == "__main__":
     unittest.main()

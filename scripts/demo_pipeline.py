@@ -68,3 +68,24 @@ def select_candidates(leads, require_social=True, include_done=False):
             "farbe": lead.get("farbe"),
         })
     return out
+
+
+_FALLBACK_OEFFNUNG = "Mo-Fr 8-17 Uhr"
+_FALLBACK_FARBE = "#F97316"
+
+
+def build_config(candidate, enrichment):
+    """Kandidat + Website-Anreicherung -> demo-fabrik-Config-Dict.
+    Anreicherung schlägt Lead-Werte schlägt Defaults."""
+    enr = enrichment or {}
+    return {
+        "slug": candidate["slug"],
+        "name": candidate["company"],
+        "gewerk": enr.get("gewerk") or "Handwerksbetrieb",
+        "stadt": enr.get("stadt") or "",
+        "notfall_nummer": candidate.get("phone") or "",
+        "oeffnungszeiten": enr.get("oeffnungszeiten") or _FALLBACK_OEFFNUNG,
+        "leistungen": enr.get("leistungen") or "",
+        "faq": enr.get("faq") or "",
+        "farbe": enr.get("farbe") or candidate.get("farbe") or _FALLBACK_FARBE,
+    }
