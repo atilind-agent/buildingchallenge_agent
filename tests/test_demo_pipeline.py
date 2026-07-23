@@ -125,5 +125,34 @@ class TestWriteBack(unittest.TestCase):
         self.assertNotIn("demoUrl", leads[0])
 
 
+import subprocess
+import tempfile
+
+SCRIPT = os.path.join(os.path.dirname(__file__), "..", "scripts", "demo_pipeline.py")
+
+
+class TestCli(unittest.TestCase):
+    def test_select_cli_prints_two_candidates(self):
+        res = subprocess.run(
+            ["python3", SCRIPT, "select", "--leads", FIXTURE],
+            capture_output=True, text=True, check=True)
+        cands = json.loads(res.stdout)
+        self.assertEqual(len(cands), 2)
+
+    def test_write_configs_skips_existing(self):
+        with tempfile.TemporaryDirectory() as d:
+            os.makedirs(os.path.join(d, "configs"))
+            existing = os.path.join(d, "configs", "elektro-musterlicht-gmbh.json")
+            with open(existing, "w", encoding="utf-8") as f:
+                f.write('{"slug": "elektro-musterlicht-gmbh", "name": "ALT"}')
+            cand = {"company": "Elektro Musterlicht GmbH", "slug": "elektro-musterlicht-gmbh",
+                    "phone": "1", "facebook": None, "instagram": None, "website": None,
+                    "problem": "", "farbe": "#1E5AA8"}
+            written = dp.write_configs([{"candidate": cand, "enrichment": {}}], d, force=False)
+            self.assertEqual(written, [])  # existierte -> nicht überschrieben
+            with open(existing, encoding="utf-8") as f:
+                self.assertIn("ALT", f.read())
+
+
 if __name__ == "__main__":
     unittest.main()
