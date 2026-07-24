@@ -309,5 +309,25 @@ class TestCli(unittest.TestCase):
             self.assertIn("aufgeben_kandidaten", res.stdout)
 
 
+class TestE2E(unittest.TestCase):
+    def test_full_chain_deterministic(self):
+        with tempfile.TemporaryDirectory() as d:
+            p = os.path.join(d, "leads.json")
+            shutil.copy(FIXTURE, p)
+            run = lambda *a: subprocess.run(["python3", SCRIPT, *a],
+                                            capture_output=True, text=True, check=True)
+            run("migrate", "--leads", p)
+            due = json.loads(run("due", "--leads", p, "--today", TODAY).stdout)
+            sent = os.path.join(d, "sent.json")
+            with open(sent, "w", encoding="utf-8") as f:
+                json.dump([x["company"] for x in due], f)
+            run("advance-apply", "--leads", p, "--sent", sent, "--today", TODAY)
+            # Nach dem Senden ist keiner der zuvor Fälligen erneut sofort fällig
+            due2 = json.loads(run("due", "--leads", p, "--today", TODAY).stdout)
+            self.assertEqual(due2, [])
+            report = json.loads(run("qa", "--leads", p, "--today", TODAY).stdout)
+            self.assertIn("Contacted Aufgeben", report["aufgeben_kandidaten"])
+
+
 if __name__ == "__main__":
     unittest.main()
