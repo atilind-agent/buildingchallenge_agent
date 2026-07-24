@@ -41,3 +41,31 @@ def valid_transition(from_stage: str, to_stage: str) -> bool:
     a = (from_stage or "").strip().upper()
     b = (to_stage or "").strip().upper()
     return (a, b) in VALID_TRANSITIONS
+
+
+def _parse_date(iso: str) -> date:
+    return date.fromisoformat(iso)
+
+
+def days_since(iso: str, today_iso: str) -> int:
+    """Ganze Tage von iso bis today_iso (positiv, wenn iso in der Vergangenheit)."""
+    return (_parse_date(today_iso) - _parse_date(iso)).days
+
+
+def load_cadence(config_path: str | None = None):
+    """(thresholds, max_touches). Defaults, optional überschrieben aus config.json
+    unter pitchAgent.cadence. Fehlt Datei/Key, greifen die Defaults."""
+    thresholds = dict(DEFAULT_THRESHOLDS)
+    max_touches = DEFAULT_MAX_TOUCHES
+    if config_path and os.path.exists(config_path):
+        try:
+            with open(config_path, encoding="utf-8") as f:
+                cfg = json.load(f)
+            cad = (cfg.get("pitchAgent") or {}).get("cadence") or {}
+            if "thresholds" in cad:
+                thresholds = {int(k): int(v) for k, v in cad["thresholds"].items()}
+            if "maxTouches" in cad:
+                max_touches = int(cad["maxTouches"])
+        except (ValueError, OSError):
+            pass  # kaputte Config -> Defaults, nichts erfinden
+    return thresholds, max_touches

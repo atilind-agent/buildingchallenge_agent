@@ -35,5 +35,31 @@ class TestTransitions(unittest.TestCase):
         self.assertTrue(pe.valid_transition("new", "contacted"))
 
 
+import tempfile
+
+
+class TestDateAndCadence(unittest.TestCase):
+    def test_days_since_positive(self):
+        self.assertEqual(pe.days_since("2026-07-21", TODAY), 3)
+
+    def test_days_since_same_day_zero(self):
+        self.assertEqual(pe.days_since("2026-07-24", TODAY), 0)
+
+    def test_load_cadence_defaults_when_no_file(self):
+        thresholds, maxt = pe.load_cadence("/nonexistent/config.json")
+        self.assertEqual(thresholds, {1: 3, 2: 7, 3: 14})
+        self.assertEqual(maxt, 4)
+
+    def test_load_cadence_override_from_config(self):
+        with tempfile.TemporaryDirectory() as d:
+            cfg = os.path.join(d, "config.json")
+            with open(cfg, "w", encoding="utf-8") as f:
+                json.dump({"n8n": {"apiKey": "x"},
+                           "pitchAgent": {"cadence": {"thresholds": {"1": 5}, "maxTouches": 6}}}, f)
+            thresholds, maxt = pe.load_cadence(cfg)
+            self.assertEqual(thresholds[1], 5)
+            self.assertEqual(maxt, 6)
+
+
 if __name__ == "__main__":
     unittest.main()
