@@ -97,3 +97,38 @@ Nächster Schritt: Outreach-Texte durchlesen und selbst versenden.
 3. **Kein Überschreiben.** Bestehende Configs/Demos bleiben (nur mit `--force`).
 4. **Ehrliche Unsicherheit.** Kaputte Website/fehlende Daten offen markieren, nicht kaschieren.
 5. **Unabhängige Schritte parallel.** Anreicherung und Outreach als parallele Subagenten.
+
+## v2 — Closing-Loop (4 Phasen)
+
+`/pitch-agent` ohne Argument = **Acquire** (oben). Mit Phasenwort: `advance`, `react …`, `review`.
+Engine: `python3 {{PITCH_AGENT_DIR}}/scripts/pipeline_engine.py`. Einmalig zuerst:
+`… migrate --leads {{LEADS_JSON}}` (idempotent, normalisiert Status + initialisiert Felder).
+
+### Phase 2: Advance (fällige Follow-ups)
+```bash
+python3 {{PITCH_AGENT_DIR}}/scripts/pipeline_engine.py due --leads {{LEADS_JSON}} > /tmp/pitch-due.json
+```
+Keine fälligen Leads → sagen und stoppen. Sonst pro fälligem Lead EIN Nudge-Entwurf via Haiku-
+Subagenten (parallel, `model: "haiku"`), Ton eskaliert mit `touchCount` (#2 freundliche Erinnerung,
+#3 kurz mit Mehrwert, #4 letzte weiche Meldung). Prompt bekommt `company, problem, demoUrl,
+touchCount`. Nichts erfinden. Entwürfe dem User zeigen. Erst NACH Senden (User bestätigt):
+`{company:true}`-Map nach `/tmp/pitch-sent.json`, dann
+`… advance-apply --leads {{LEADS_JSON}} --sent /tmp/pitch-sent.json`.
+
+### Phase 3: React (Antwort verarbeiten)
+User meldet: „Lead X hat geantwortet: «Text»". Haiku klassifiziert in genau eine Klasse
+`interessiert | frage | einwand | später | nein` und entwirft die Reaktion. Klasse unklar →
+User fragen, nicht raten. Dann:
+```bash
+python3 {{PITCH_AGENT_DIR}}/scripts/pipeline_engine.py react-apply --leads {{LEADS_JSON}} \
+  --company "X" --reply-class <klasse> [--snooze YYYY-MM-DD] --reply-text "«Text»"
+```
+(`später` braucht `--snooze`.) Reaktion dem User zum Senden zeigen — kein Auto-Versand.
+
+### Phase 4: Review (CRM-QA)
+```bash
+python3 {{PITCH_AGENT_DIR}}/scripts/pipeline_engine.py qa --leads {{LEADS_JSON}} --repair
+```
+Druckt `status/warnungen/graufaelle/aktion_noetig/aufgeben_kandidaten`. `--repair` fixt Triviales
+(followUpDue, fehlende nextAction). Graufälle + „Aktion nötig" (REPLIED) dem User auflisten,
+nichts verschweigen.

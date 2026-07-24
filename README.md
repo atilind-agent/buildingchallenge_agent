@@ -21,6 +21,16 @@ Input: eine vorhandene `leads.json` (aus dem Lead-Finder). Der Agent
 Ergebnis: pro Lead ein Demo-Link + ein Nachrichtentext — zum Durchlesen und Senden.
 **Kein Auto-Versand.**
 
+## v2 — Closing-Loop (4 Phasen)
+
+Ab v2 begleitet `scripts/pipeline_engine.py` den Lead deterministisch weiter, über den
+Erstkontakt hinaus, in 4 Phasen:
+
+1. **Acquire** — Lead → Demo → Deploy → Outreach (siehe oben).
+2. **Advance** — erkennt fällige Follow-ups (Cadence) und markiert sie nach Bestätigung als gesendet.
+3. **React** — verarbeitet eingehende Antworten (interessiert/frage/einwand/später/nein) und bewegt den Lead in die passende Stage.
+4. **Review** — CRM-QA über alle Leads (Warnungen, Graufälle, Aufgeben-Kandidaten), optional mit Auto-Repair.
+
 ## Stack
 
 - [x] Claude Code (Agent / Skills)
