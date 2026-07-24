@@ -107,5 +107,37 @@ class TestDue(unittest.TestCase):
         self.assertIsNone(lead["followUpDue"])
 
 
+class TestMarkSent(unittest.TestCase):
+    def test_mark_sent_increments_and_dates(self):
+        lead = {"company": "X", "status": "CONTACTED", "lastTouch": "2026-07-21",
+                "touchCount": 1, "notes": []}
+        pe.mark_sent(lead, TODAY)
+        self.assertEqual(lead["touchCount"], 2)
+        self.assertEqual(lead["lastTouch"], TODAY)
+        self.assertEqual(lead["status"], "CONTACTED")
+        self.assertEqual(lead["followUpDue"], "2026-07-31")  # +7 (touchCount 2)
+
+    def test_mark_sent_appends_note_object(self):
+        lead = {"company": "X", "status": "CONTACTED", "lastTouch": "2026-07-21",
+                "touchCount": 1, "notes": []}
+        pe.mark_sent(lead, TODAY)
+        self.assertEqual(lead["notes"][-1], {"date": TODAY, "text": "Follow-up #2 gesendet"})
+
+    def test_mark_sent_nextaction_is_object(self):
+        lead = {"company": "X", "status": "CONTACTED", "lastTouch": "2026-07-21",
+                "touchCount": 1, "notes": []}
+        pe.mark_sent(lead, TODAY)
+        self.assertEqual(lead["nextAction"]["date"], "2026-07-31")
+        self.assertIn("fällig", lead["nextAction"]["note"])
+
+    def test_mark_sent_at_max_flags_aufgeben(self):
+        lead = {"company": "X", "status": "CONTACTED", "lastTouch": "2026-07-04",
+                "touchCount": 3, "notes": []}
+        pe.mark_sent(lead, TODAY)  # -> touchCount 4
+        self.assertEqual(lead["touchCount"], 4)
+        self.assertIsNone(lead["followUpDue"])
+        self.assertIn("Aufgeben", lead["nextAction"]["note"])
+
+
 if __name__ == "__main__":
     unittest.main()

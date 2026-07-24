@@ -105,3 +105,29 @@ def due_for_followup(lead: dict, today: str, thresholds: dict | None = None) -> 
 def select_due(leads: list, today: str, thresholds: dict | None = None) -> list:
     """Alle fälligen CONTACTED-Leads (Advance-Input)."""
     return [l for l in leads if due_for_followup(l, today, thresholds)]
+
+
+def _append_note(lead: dict, today: str, text: str) -> None:
+    """Hängt einen {date, text}-Eintrag an notes (Dashboard-Shape)."""
+    notes = lead.get("notes")
+    if not isinstance(notes, list):
+        notes = []
+        lead["notes"] = notes
+    notes.append({"date": today, "text": text})
+
+
+def mark_sent(lead: dict, today: str, thresholds: dict | None = None) -> dict:
+    """Nach dem Senden eines Follow-up-Nudges: touchCount++, lastTouch=today,
+    Status CONTACTED, followUpDue + nextAction neu, notes-Eintrag."""
+    thresholds = thresholds or DEFAULT_THRESHOLDS
+    lead["touchCount"] = int(lead.get("touchCount") or 0) + 1
+    lead["lastTouch"] = today
+    lead["status"] = "CONTACTED"
+    recompute_due(lead, thresholds)
+    n = lead["touchCount"]
+    _append_note(lead, today, f"Follow-up #{n} gesendet")
+    if lead.get("followUpDue"):
+        lead["nextAction"] = {"date": lead["followUpDue"], "note": f"Follow-up #{n + 1} fällig"}
+    else:
+        lead["nextAction"] = {"date": today, "note": "Aufgeben prüfen (max. Touches erreicht)"}
+    return lead
