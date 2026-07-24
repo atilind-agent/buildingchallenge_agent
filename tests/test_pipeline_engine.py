@@ -139,5 +139,56 @@ class TestMarkSent(unittest.TestCase):
         self.assertIn("Aufgeben", lead["nextAction"]["note"])
 
 
+class TestApplyReply(unittest.TestCase):
+    def _contacted(self):
+        return {"company": "X", "status": "CONTACTED", "lastTouch": "2026-07-17",
+                "touchCount": 2, "notes": [], "demoUrl": "https://x/"}
+
+    def test_interessiert_to_in_talks(self):
+        lead = self._contacted()
+        pe.apply_reply(lead, "interessiert", TODAY)
+        self.assertEqual(lead["status"], "IN_TALKS")
+        self.assertIsNone(lead["followUpDue"])
+
+    def test_frage_stays_contacted_resets_cadence(self):
+        lead = self._contacted()
+        pe.apply_reply(lead, "frage", TODAY)
+        self.assertEqual(lead["status"], "CONTACTED")
+        self.assertEqual(lead["lastTouch"], TODAY)       # Cadence-Reset
+        self.assertEqual(lead["touchCount"], 2)          # Dialog zählt nicht als Nudge
+        self.assertEqual(lead["followUpDue"], "2026-07-31")  # +7 ab heute
+
+    def test_einwand_stays_contacted(self):
+        lead = self._contacted()
+        pe.apply_reply(lead, "einwand", TODAY)
+        self.assertEqual(lead["status"], "CONTACTED")
+
+    def test_spaeter_sets_snooze(self):
+        lead = self._contacted()
+        pe.apply_reply(lead, "später", TODAY, snooze_until="2026-08-15")
+        self.assertEqual(lead["status"], "CONTACTED")
+        self.assertEqual(lead["snoozeUntil"], "2026-08-15")
+
+    def test_spaeter_without_snooze_raises(self):
+        with self.assertRaises(ValueError):
+            pe.apply_reply(self._contacted(), "später", TODAY)
+
+    def test_nein_to_lost(self):
+        lead = self._contacted()
+        pe.apply_reply(lead, "nein", TODAY)
+        self.assertEqual(lead["status"], "LOST")
+        self.assertIsNone(lead["nextAction"])
+
+    def test_unknown_class_raises(self):
+        with self.assertRaises(ValueError):
+            pe.apply_reply(self._contacted(), "vielleicht", TODAY)
+
+    def test_reply_text_lands_in_notes(self):
+        lead = self._contacted()
+        pe.apply_reply(lead, "frage", TODAY, reply_text="Was kostet das?")
+        self.assertEqual(lead["notes"][-1]["date"], TODAY)
+        self.assertIn("Was kostet das?", lead["notes"][-1]["text"])
+
+
 if __name__ == "__main__":
     unittest.main()

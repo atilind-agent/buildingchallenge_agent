@@ -131,3 +131,41 @@ def mark_sent(lead: dict, today: str, thresholds: dict | None = None) -> dict:
     else:
         lead["nextAction"] = {"date": today, "note": "Aufgeben prüfen (max. Touches erreicht)"}
     return lead
+
+
+def apply_reply(lead: dict, reply_class: str, today: str,
+                snooze_until: str | None = None, reply_text: str | None = None,
+                thresholds: dict | None = None) -> dict:
+    """Deterministischer Stage-Move aus einer gemeldeten Antwort.
+    Klassen: interessiert|frage|einwand|später|nein. Setzt status, nextAction, notes."""
+    thresholds = thresholds or DEFAULT_THRESHOLDS
+    if reply_class not in REPLY_TARGET:
+        raise ValueError(f"unbekannte reply_class: {reply_class}")
+    if reply_class == "später" and not snooze_until:
+        raise ValueError("reply_class 'später' erfordert snooze_until")
+
+    target = REPLY_TARGET[reply_class]
+    lead["status"] = target
+
+    note_text = f"Antwort ({reply_class})"
+    if reply_text:
+        note_text += f": {reply_text}"
+    _append_note(lead, today, note_text)
+
+    if reply_class in ("frage", "einwand"):
+        # Wir antworten jetzt -> Cadence-Uhr startet neu, touchCount unverändert
+        lead["lastTouch"] = today
+        recompute_due(lead, thresholds)
+        lead["nextAction"] = {"date": lead.get("followUpDue") or today,
+                              "note": "Wartet auf Rückmeldung"}
+    elif reply_class == "später":
+        lead["snoozeUntil"] = snooze_until
+        lead["followUpDue"] = None
+        lead["nextAction"] = {"date": snooze_until, "note": "Später nachfassen"}
+    elif reply_class == "interessiert":
+        lead["followUpDue"] = None
+        lead["nextAction"] = {"date": today, "note": "Gespräch führen / Angebot"}
+    else:  # nein -> LOST
+        lead["followUpDue"] = None
+        lead["nextAction"] = None
+    return lead
