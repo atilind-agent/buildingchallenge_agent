@@ -60,6 +60,24 @@ class TestDateAndCadence(unittest.TestCase):
             self.assertEqual(thresholds[1], 5)
             self.assertEqual(maxt, 6)
 
+    def test_load_cadence_override_preserves_other_keys(self):
+        with tempfile.TemporaryDirectory() as d:
+            cfg = os.path.join(d, "config.json")
+            with open(cfg, "w", encoding="utf-8") as f:
+                json.dump({"pitchAgent": {"cadence": {"thresholds": {"1": 5}}}}, f)
+            thresholds, _ = pe.load_cadence(cfg)
+            self.assertEqual(thresholds[1], 5)
+            self.assertEqual(thresholds[2], 7)   # nicht überschrieben -> erhalten
+            self.assertEqual(thresholds[3], 14)
+
+    def test_load_cadence_bad_shape_falls_back(self):
+        with tempfile.TemporaryDirectory() as d:
+            cfg = os.path.join(d, "config.json")
+            with open(cfg, "w", encoding="utf-8") as f:
+                json.dump({"pitchAgent": {"cadence": {"thresholds": [1, 2, 3]}}}, f)
+            thresholds, maxt = pe.load_cadence(cfg)
+            self.assertEqual(thresholds, {1: 3, 2: 7, 3: 14})  # Defaults
+
 
 class TestDue(unittest.TestCase):
     def setUp(self):
@@ -138,6 +156,12 @@ class TestMarkSent(unittest.TestCase):
         self.assertIsNone(lead["followUpDue"])
         self.assertIn("Aufgeben", lead["nextAction"]["note"])
 
+    def test_mark_sent_on_terminal_raises(self):
+        won = {"company": "W", "status": "WON", "lastTouch": "2026-07-15",
+               "touchCount": 3, "notes": []}
+        with self.assertRaises(ValueError):
+            pe.mark_sent(won, TODAY)
+
 
 class TestApplyReply(unittest.TestCase):
     def _contacted(self):
@@ -188,6 +212,17 @@ class TestApplyReply(unittest.TestCase):
         pe.apply_reply(lead, "frage", TODAY, reply_text="Was kostet das?")
         self.assertEqual(lead["notes"][-1]["date"], TODAY)
         self.assertIn("Was kostet das?", lead["notes"][-1]["text"])
+
+    def test_reply_on_terminal_raises(self):
+        won = {"company": "W", "status": "WON", "notes": [], "demoUrl": "https://x/"}
+        with self.assertRaises(ValueError):
+            pe.apply_reply(won, "nein", TODAY)
+
+    def test_reply_on_replied_lead_ok(self):
+        lead = {"company": "R", "status": "REPLIED", "lastTouch": "2026-07-17",
+                "touchCount": 2, "notes": [], "demoUrl": "https://x/"}
+        pe.apply_reply(lead, "interessiert", TODAY)
+        self.assertEqual(lead["status"], "IN_TALKS")
 
 
 class TestMigrate(unittest.TestCase):

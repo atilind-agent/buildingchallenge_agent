@@ -63,10 +63,10 @@ def load_cadence(config_path: str | None = None):
                 cfg = json.load(f)
             cad = (cfg.get("pitchAgent") or {}).get("cadence") or {}
             if "thresholds" in cad:
-                thresholds = {int(k): int(v) for k, v in cad["thresholds"].items()}
+                thresholds.update({int(k): int(v) for k, v in cad["thresholds"].items()})
             if "maxTouches" in cad:
                 max_touches = int(cad["maxTouches"])
-        except (ValueError, OSError):
+        except (ValueError, OSError, AttributeError, TypeError):
             pass  # kaputte Config -> Defaults, nichts erfinden
     return thresholds, max_touches
 
@@ -119,6 +119,9 @@ def _append_note(lead: dict, today: str, text: str) -> None:
 def mark_sent(lead: dict, today: str, thresholds: dict | None = None) -> dict:
     """Nach dem Senden eines Follow-up-Nudges: touchCount++, lastTouch=today,
     Status CONTACTED, followUpDue + nextAction neu, notes-Eintrag."""
+    cur = (lead.get("status") or "").upper()
+    if not valid_transition(cur, "CONTACTED"):
+        raise ValueError(f"Nudge in Stage {cur} nicht möglich")
     thresholds = thresholds or DEFAULT_THRESHOLDS
     lead["touchCount"] = int(lead.get("touchCount") or 0) + 1
     lead["lastTouch"] = today
@@ -143,6 +146,9 @@ def apply_reply(lead: dict, reply_class: str, today: str,
         raise ValueError(f"unbekannte reply_class: {reply_class}")
     if reply_class == "später" and not snooze_until:
         raise ValueError("reply_class 'später' erfordert snooze_until")
+    cur = (lead.get("status") or "").upper()
+    if cur != "REPLIED" and not valid_transition(cur, "REPLIED"):
+        raise ValueError(f"Antwort in Stage {cur} nicht möglich (Lead muss CONTACTED oder REPLIED sein)")
 
     target = REPLY_TARGET[reply_class]
     lead["status"] = target
@@ -270,12 +276,16 @@ def cmd_advance_apply(args):
 
 
 def cmd_react_apply(args):
+    thresholds, _ = load_cadence(args.config)
     leads = _load_json(args.leads)
     hit = next((l for l in leads if l.get("company") == args.company), None)
     if hit is None:
         sys.exit(f"Lead nicht gefunden: {args.company}")
-    apply_reply(hit, args.reply_class, _today(args),
-                snooze_until=args.snooze, reply_text=args.reply_text)
+    try:
+        apply_reply(hit, args.reply_class, _today(args),
+                    snooze_until=args.snooze, reply_text=args.reply_text, thresholds=thresholds)
+    except ValueError as e:
+        sys.exit(str(e))
     _write_json_atomic(args.leads, leads)
     print(f"{args.company} -> {hit['status']}")
 
@@ -307,7 +317,7 @@ def main(argv=None):
     r.add_argument("--company", required=True)
     r.add_argument("--reply-class", required=True, dest="reply_class")
     r.add_argument("--snooze"); r.add_argument("--reply-text", dest="reply_text")
-    r.add_argument("--today"); r.set_defaults(func=cmd_react_apply)
+    r.add_argument("--today"); r.add_argument("--config"); r.set_defaults(func=cmd_react_apply)
 
     q = sub.add_parser("qa"); q.add_argument("--leads", required=True)
     q.add_argument("--repair", action="store_true"); q.add_argument("--today")
