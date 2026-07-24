@@ -187,3 +187,37 @@ def migrate(leads: list, today: str | None = None, thresholds: dict | None = Non
             lead["notes"] = []
         recompute_due(lead, thresholds)
     return leads
+
+
+def crm_qa(leads: list, today: str, thresholds: dict | None = None,
+           max_touches: int = DEFAULT_MAX_TOUCHES, repair: bool = False) -> dict:
+    """Laufzeit-CRM-QA: Triviales optional auto-fixen (repair), Rest flaggen."""
+    warnungen, graufaelle, aktion_noetig, aufgeben = [], [], [], []
+    need_demo = {"CONTACTED", "REPLIED", "IN_TALKS", "WON"}
+    terminal = {"WON", "LOST"}
+    for lead in leads:
+        name = lead.get("company", "?")
+        st = (lead.get("status") or "").upper()
+        if st not in STAGES:
+            warnungen.append(f"{name}: ungültige Stage '{st}'")
+            continue
+        if st in need_demo and not lead.get("demoUrl"):
+            warnungen.append(f"{name}: {st} ohne demoUrl")
+        if st == "CONTACTED" and not lead.get("lastTouch"):
+            warnungen.append(f"{name}: CONTACTED ohne lastTouch")
+        if st == "CONTACTED" and int(lead.get("touchCount") or 0) >= max_touches:
+            aufgeben.append(name)
+            graufaelle.append(f"{name}: {lead.get('touchCount')} Touches ohne Antwort — aufgeben?")
+        if st == "REPLIED":
+            aktion_noetig.append(name)
+        if st not in terminal and not lead.get("nextAction"):
+            if repair:
+                recompute_due(lead, thresholds)
+                lead["nextAction"] = {"date": today, "note": "Nächsten Schritt festlegen"}
+            else:
+                warnungen.append(f"{name}: {st} ohne nextAction (Waise)")
+        if repair:
+            recompute_due(lead, thresholds)
+    status = "WARN" if (warnungen or graufaelle) else "PASS"
+    return {"status": status, "warnungen": warnungen, "graufaelle": graufaelle,
+            "aktion_noetig": aktion_noetig, "aufgeben_kandidaten": aufgeben}

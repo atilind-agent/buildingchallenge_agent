@@ -227,5 +227,41 @@ class TestMigrate(unittest.TestCase):
         self.assertEqual(leads[0]["status"], "OFFER")  # nicht zerstört, QA flaggt
 
 
+class TestCrmQa(unittest.TestCase):
+    def setUp(self):
+        self.leads = _load()
+
+    def test_flags_contacted_without_demourl(self):
+        r = pe.crm_qa(self.leads, TODAY)
+        self.assertTrue(any("Contacted Kaputt" in w for w in r["warnungen"]))
+
+    def test_aufgeben_candidate_listed(self):
+        r = pe.crm_qa(self.leads, TODAY)
+        self.assertIn("Contacted Aufgeben", r["aufgeben_kandidaten"])
+
+    def test_replied_in_aktion_noetig(self):
+        r = pe.crm_qa(self.leads, TODAY)
+        self.assertIn("Replied Lead", r["aktion_noetig"])
+
+    def test_status_warn_when_issues(self):
+        r = pe.crm_qa(self.leads, TODAY)
+        self.assertEqual(r["status"], "WARN")
+
+    def test_clean_leads_pass(self):
+        clean = [{"company": "Ok", "status": "IN_TALKS", "demoUrl": "https://x/",
+                  "lastTouch": "2026-07-20", "touchCount": 2, "followUpDue": None,
+                  "snoozeUntil": None, "nextAction": {"date": TODAY, "note": "x"}, "notes": []}]
+        r = pe.crm_qa(clean, TODAY)
+        self.assertEqual(r["status"], "PASS")
+
+    def test_repair_sets_missing_nextaction(self):
+        leads = [{"company": "Orphan", "status": "CONTACTED", "demoUrl": "https://x/",
+                  "lastTouch": "2026-07-21", "touchCount": 1, "followUpDue": None,
+                  "snoozeUntil": None, "nextAction": None, "notes": []}]
+        pe.crm_qa(leads, TODAY, repair=True)
+        self.assertIsNotNone(leads[0]["nextAction"])
+        self.assertEqual(leads[0]["followUpDue"], "2026-07-24")  # recomputed
+
+
 if __name__ == "__main__":
     unittest.main()
