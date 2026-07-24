@@ -69,3 +69,39 @@ def load_cadence(config_path: str | None = None):
         except (ValueError, OSError):
             pass  # kaputte Config -> Defaults, nichts erfinden
     return thresholds, max_touches
+
+
+def recompute_due(lead: dict, thresholds: dict | None = None) -> dict:
+    """Setzt nur den followUpDue-Cache (lastTouch + Schwelle je touchCount).
+    Nur für CONTACTED mit gültigem touchCount/lastTouch; sonst None.
+    today-unabhängig -> idempotent."""
+    thresholds = thresholds or DEFAULT_THRESHOLDS
+    tc = int(lead.get("touchCount") or 0)
+    lt = lead.get("lastTouch")
+    if (lead.get("status") or "").upper() == "CONTACTED" and lt and tc in thresholds:
+        lead["followUpDue"] = (_parse_date(lt) + timedelta(days=thresholds[tc])).isoformat()
+    else:
+        lead["followUpDue"] = None
+    return lead
+
+
+def due_for_followup(lead: dict, today: str, thresholds: dict | None = None) -> bool:
+    """True, wenn ein CONTACTED-Lead einen Follow-up-Nudge fällig hat."""
+    thresholds = thresholds or DEFAULT_THRESHOLDS
+    if (lead.get("status") or "").upper() != "CONTACTED":
+        return False
+    tc = int(lead.get("touchCount") or 0)
+    if tc not in thresholds:
+        return False
+    lt = lead.get("lastTouch")
+    if not lt:
+        return False
+    snooze = lead.get("snoozeUntil")
+    if snooze and _parse_date(snooze) > _parse_date(today):
+        return False
+    return days_since(lt, today) >= thresholds[tc]
+
+
+def select_due(leads: list, today: str, thresholds: dict | None = None) -> list:
+    """Alle fälligen CONTACTED-Leads (Advance-Input)."""
+    return [l for l in leads if due_for_followup(l, today, thresholds)]
