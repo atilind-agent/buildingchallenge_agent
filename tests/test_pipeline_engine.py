@@ -190,5 +190,42 @@ class TestApplyReply(unittest.TestCase):
         self.assertIn("Was kostet das?", lead["notes"][-1]["text"])
 
 
+class TestMigrate(unittest.TestCase):
+    def test_normalizes_status_case(self):
+        leads = [{"company": "A", "status": "new"}]
+        pe.migrate(leads)
+        self.assertEqual(leads[0]["status"], "NEW")
+
+    def test_initializes_missing_fields(self):
+        leads = [{"company": "A", "status": "new"}]
+        pe.migrate(leads)
+        self.assertEqual(leads[0]["touchCount"], 0)
+        self.assertIsNone(leads[0]["lastTouch"])
+        self.assertIsNone(leads[0]["snoozeUntil"])
+        self.assertEqual(leads[0]["notes"], [])
+        self.assertIsNone(leads[0]["followUpDue"])
+
+    def test_does_not_use_date_as_lasttouch(self):
+        leads = [{"company": "A", "status": "new", "date": "2026-06-01"}]
+        pe.migrate(leads)
+        self.assertIsNone(leads[0]["lastTouch"])
+
+    def test_new_with_demourl_stays_new(self):
+        leads = _load()
+        pe.migrate(leads)
+        self.assertEqual(_by(leads, "New Mit Demo")["status"], "NEW")
+
+    def test_idempotent(self):
+        leads = _load()
+        once = json.dumps(pe.migrate(leads), sort_keys=True, ensure_ascii=False)
+        twice = json.dumps(pe.migrate(leads), sort_keys=True, ensure_ascii=False)
+        self.assertEqual(once, twice)
+
+    def test_unknown_legacy_status_preserved_uppercased(self):
+        leads = [{"company": "A", "status": "offer"}]
+        pe.migrate(leads)
+        self.assertEqual(leads[0]["status"], "OFFER")  # nicht zerstört, QA flaggt
+
+
 if __name__ == "__main__":
     unittest.main()

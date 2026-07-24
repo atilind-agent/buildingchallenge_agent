@@ -169,3 +169,21 @@ def apply_reply(lead: dict, reply_class: str, today: str,
         lead["followUpDue"] = None
         lead["nextAction"] = None
     return lead
+
+
+def migrate(leads: list, today: str | None = None, thresholds: dict | None = None) -> list:
+    """Idempotent: status normalisieren + v2-Felder initialisieren.
+    date wird NICHT als lastTouch verwendet (nichts erfinden)."""
+    for lead in leads:
+        st = (lead.get("status") or "NEW").strip().upper()
+        lead["status"] = "NEW" if st in ("NEW", "") else st
+        if "touchCount" not in lead or lead["touchCount"] is None:
+            lead["touchCount"] = 0
+        if "lastTouch" not in lead:
+            lead["lastTouch"] = None
+        if "snoozeUntil" not in lead:
+            lead["snoozeUntil"] = None
+        if not isinstance(lead.get("notes"), list):
+            lead["notes"] = []
+        recompute_due(lead, thresholds)
+    return leads
