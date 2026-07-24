@@ -263,5 +263,51 @@ class TestCrmQa(unittest.TestCase):
         self.assertEqual(leads[0]["followUpDue"], "2026-07-24")  # recomputed
 
 
+import subprocess
+import shutil
+
+SCRIPT = os.path.join(os.path.dirname(__file__), "..", "scripts", "pipeline_engine.py")
+
+
+class TestCli(unittest.TestCase):
+    def _tmp_leads(self, d):
+        p = os.path.join(d, "leads.json")
+        shutil.copy(FIXTURE, p)
+        return p
+
+    def test_migrate_cli_writes_and_counts(self):
+        with tempfile.TemporaryDirectory() as d:
+            p = self._tmp_leads(d)
+            res = subprocess.run(["python3", SCRIPT, "migrate", "--leads", p],
+                                 capture_output=True, text=True, check=True)
+            self.assertIn("migriert", res.stdout)
+            with open(p, encoding="utf-8") as f:
+                self.assertEqual(json.load(f)[0]["status"], "NEW")
+
+    def test_due_cli_lists_due(self):
+        with tempfile.TemporaryDirectory() as d:
+            p = self._tmp_leads(d)
+            res = subprocess.run(["python3", SCRIPT, "due", "--leads", p, "--today", TODAY],
+                                 capture_output=True, text=True, check=True)
+            names = {x["company"] for x in json.loads(res.stdout)}
+            self.assertEqual(names, {"Contacted Faellig", "Contacted Faellig3"})
+
+    def test_react_apply_cli_sets_stage(self):
+        with tempfile.TemporaryDirectory() as d:
+            p = self._tmp_leads(d)
+            subprocess.run(["python3", SCRIPT, "react-apply", "--leads", p,
+                            "--company", "Replied Lead", "--reply-class", "interessiert",
+                            "--today", TODAY], capture_output=True, text=True, check=True)
+            with open(p, encoding="utf-8") as f:
+                self.assertEqual(_by(json.load(f), "Replied Lead")["status"], "IN_TALKS")
+
+    def test_qa_cli_prints_report(self):
+        with tempfile.TemporaryDirectory() as d:
+            p = self._tmp_leads(d)
+            res = subprocess.run(["python3", SCRIPT, "qa", "--leads", p, "--today", TODAY],
+                                 capture_output=True, text=True, check=True)
+            self.assertIn("aufgeben_kandidaten", res.stdout)
+
+
 if __name__ == "__main__":
     unittest.main()
