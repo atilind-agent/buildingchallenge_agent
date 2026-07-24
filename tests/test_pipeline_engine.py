@@ -336,6 +336,28 @@ class TestCli(unittest.TestCase):
             with open(p, encoding="utf-8") as f:
                 self.assertEqual(_by(json.load(f), "Replied Lead")["status"], "IN_TALKS")
 
+    def test_mark_sent_cli_sets_contacted(self):
+        with tempfile.TemporaryDirectory() as d:
+            p = self._tmp_leads(d)
+            res = subprocess.run(["python3", SCRIPT, "mark-sent", "--leads", p,
+                                  "--company", "New Mit Demo", "--today", TODAY],
+                                 capture_output=True, text=True, check=True)
+            self.assertIn("CONTACTED", res.stdout)
+            with open(p, encoding="utf-8") as f:
+                lead = _by(json.load(f), "New Mit Demo")
+            self.assertEqual(lead["status"], "CONTACTED")
+            self.assertEqual(lead["touchCount"], 1)
+            self.assertEqual(lead["lastTouch"], TODAY)
+
+    def test_mark_sent_cli_not_found_exits_nonzero(self):
+        with tempfile.TemporaryDirectory() as d:
+            p = self._tmp_leads(d)
+            res = subprocess.run(["python3", SCRIPT, "mark-sent", "--leads", p,
+                                  "--company", "Nicht Existent", "--today", TODAY],
+                                 capture_output=True, text=True)
+            self.assertNotEqual(res.returncode, 0)
+            self.assertIn("nicht gefunden", res.stderr)
+
     def test_qa_cli_prints_report(self):
         with tempfile.TemporaryDirectory() as d:
             p = self._tmp_leads(d)

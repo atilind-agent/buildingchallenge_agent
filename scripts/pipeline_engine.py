@@ -275,6 +275,20 @@ def cmd_advance_apply(args):
     print(f"{hits} Lead(s) als gesendet markiert.")
 
 
+def cmd_mark_sent(args):
+    thresholds, _ = load_cadence(args.config)
+    leads = _load_json(args.leads)
+    hit = next((l for l in leads if l.get("company") == args.company), None)
+    if hit is None:
+        sys.exit(f"Lead nicht gefunden: {args.company}")
+    try:
+        mark_sent(hit, _today(args), thresholds)
+    except ValueError as e:
+        sys.exit(str(e))
+    _write_json_atomic(args.leads, leads)
+    print(f"{args.company} -> {hit['status']}")
+
+
 def cmd_react_apply(args):
     thresholds, _ = load_cadence(args.config)
     leads = _load_json(args.leads)
@@ -312,6 +326,10 @@ def main(argv=None):
     a = sub.add_parser("advance-apply"); a.add_argument("--leads", required=True)
     a.add_argument("--sent", required=True); a.add_argument("--today")
     a.add_argument("--config"); a.set_defaults(func=cmd_advance_apply)
+
+    s = sub.add_parser("mark-sent"); s.add_argument("--leads", required=True)
+    s.add_argument("--company", required=True)
+    s.add_argument("--today"); s.add_argument("--config"); s.set_defaults(func=cmd_mark_sent)
 
     r = sub.add_parser("react-apply"); r.add_argument("--leads", required=True)
     r.add_argument("--company", required=True)
